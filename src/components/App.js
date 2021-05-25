@@ -78,13 +78,44 @@ class App extends Component {
   }
 
   //Get video
-  captureFile = (event) => {};
+  captureFile = (event) => {
+    event.preventDefault();
+    const file = event.target.files[0];
+    const reader = new window.FileReader();
+    reader.readAsArrayBuffer(file);
+
+    reader.onloadend = () => {
+      this.setState({ buffer: Buffer(reader.result) });
+      console.log("buffer", this.state.buffer);
+    };
+  };
 
   //Upload video
-  uploadVideo = (title) => {};
+  uploadVideo = (title) => {
+    console.log("Submitting file to IPFS...");
+
+    ipfs.add(this.state.buffer, (error, result) => {
+      console.log("IPFS result", result);
+      if (error) {
+        console.log(error);
+        return;
+      }
+
+      this.setState({ loading: true });
+      this.state.dvideo.methods
+        .uploadVideo(result[0].hash, title)
+        .send({ from: this.state.account })
+        .on("transactionHash", (hash) => {
+          this.setState({ loading: false });
+        });
+    });
+  };
 
   //Change Video
-  changeVideo = (hash, title) => {};
+  changeVideo = (hash, title) => {
+    this.setState({ currentHash: hash });
+    this.setState({ currentTitle: title });
+  };
 
   constructor(props) {
     super(props);
@@ -111,7 +142,12 @@ class App extends Component {
           </div>
         ) : (
           <Main
-          //states&functions
+            captureFile={this.captureFile}
+            uploadVideo={this.uploadVideo}
+            changeVideo={this.changeVideo}
+            currentHash={this.state.currentHash}
+            currentTitle={this.state.currentTitle}
+            videos={this.state.videos}
           />
         )}
       </div>
